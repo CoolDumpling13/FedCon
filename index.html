@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>FedCon</title>
+
+  <!-- PWA Meta -->
+  <meta name="application-name" content="FedCon" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="FedCon" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0D0D0D" />
+  <meta name="description" content="Live currency converter — IDR, NZD, USD" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-512.png" />
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0D0D0D; --surface: #161616; --card: #1E1E1E; --border: #2A2A2A;
+      --accent: #C8F261; --accent-dim: rgba(200,242,97,0.12); --text: #F0F0F0; --muted: #6B6B6B;
+      --idr: #FF9F45; --idr-dim: rgba(255,159,69,0.12); --idr-bd: rgba(255,159,69,0.35);
+      --nzd: #3ECFCF; --nzd-dim: rgba(62,207,207,0.10); --nzd-bd: rgba(62,207,207,0.30);
+      --usd: #C8F261; --usd-dim: rgba(200,242,97,0.10); --usd-bd: rgba(200,242,97,0.25);
+    }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Space Grotesk','Inter',system-ui,sans-serif; -webkit-font-smoothing: antialiased; overscroll-behavior: none; }
+    body { display: flex; align-items: center; justify-content: center; min-height: 100dvh; padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); }
+    .widget { width: 100%; max-width: 390px; background: var(--surface); border-radius: 24px; border: 1px solid var(--border); box-shadow: 0 32px 64px rgba(0,0,0,0.6); overflow: hidden; }
+    .header { padding: 18px 20px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .app-name { font-family: 'Space Mono',monospace; font-size: 15px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text); }
+    .app-sub { font-size: 10px; color: var(--muted); margin-top: 2px; letter-spacing: 0.06em; }
+    .live-btn { background: var(--accent-dim); color: var(--accent); font-size: 10px; font-weight: 600; padding: 5px 11px; border-radius: 20px; border: none; cursor: pointer; letter-spacing: 0.06em; text-transform: uppercase; font-family: inherit; display: flex; align-items: center; gap: 5px; }
+    .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+    .from-label { padding: 12px 20px 0; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; }
+    .tabs { display: flex; gap: 8px; padding: 8px 20px 16px; }
+    .tab { flex: 1; padding: 10px 6px; border-radius: 12px; border: 1.5px solid var(--border); background: var(--card); cursor: pointer; text-align: center; transition: all 0.15s; }
+    .tab-flag { font-size: 22px; display: block; }
+    .tab-code { font-family: 'Space Mono',monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; color: var(--muted); margin-top: 4px; display: block; transition: color 0.15s; }
+    .tab.active-IDR { border-color: var(--idr-bd); background: var(--idr-dim); } .tab.active-IDR .tab-code { color: var(--idr); }
+    .tab.active-NZD { border-color: var(--nzd-bd); background: var(--nzd-dim); } .tab.active-NZD .tab-code { color: var(--nzd); }
+    .tab.active-USD { border-color: var(--usd-bd); background: var(--usd-dim); } .tab.active-USD .tab-code { color: var(--usd); }
+    .input-section { padding: 0 20px 16px; border-bottom: 1px solid var(--border); }
+    .input-wrap { display: flex; align-items: center; gap: 10px; background: var(--card); border: 1.5px solid var(--border); border-radius: 14px; padding: 13px 16px; transition: all 0.2s; }
+    .input-wrap.active-IDR:focus-within { border-color: var(--idr); box-shadow: 0 0 0 3px var(--idr-dim); }
+    .input-wrap.active-NZD:focus-within { border-color: var(--nzd); box-shadow: 0 0 0 3px var(--nzd-dim); }
+    .input-wrap.active-USD:focus-within { border-color: var(--usd); box-shadow: 0 0 0 3px var(--usd-dim); }
+    .from-tag { font-family: 'Space Mono',monospace; font-size: 12px; font-weight: 700; background: var(--border); padding: 3px 8px; border-radius: 6px; min-width: 42px; text-align: center; }
+    .from-tag.IDR { color: var(--idr); } .from-tag.NZD { color: var(--nzd); } .from-tag.USD { color: var(--usd); }
+    #amountInput { flex: 1; background: none; border: none; outline: none; color: var(--text); font-family: 'Space Mono',monospace; font-size: 22px; font-weight: 700; caret-color: var(--accent); width: 100%; -moz-appearance: textfield; }
+    #amountInput::-webkit-inner-spin-button, #amountInput::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    #amountInput::placeholder { color: var(--border); }
+    .quick-row { display: flex; gap: 6px; margin-top: 10px; }
+    .quick-btn { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 6px 2px; color: var(--muted); font-family: inherit; font-size: 11px; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.15s; }
+    .quick-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+    .convert-btn { width: calc(100% - 40px); margin: 16px 20px; background: var(--accent); color: #0D0D0D; border: none; border-radius: 12px; padding: 13px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: 0.04em; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.15s; }
+    .convert-btn:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+    .convert-btn:active:not(:disabled) { transform: translateY(0); }
+    .convert-btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+    .spinner { width: 15px; height: 15px; border: 2px solid rgba(0,0,0,0.2); border-top-color: #000; border-radius: 50%; display: none; animation: spin 0.7s linear infinite; }
+    .error-msg { font-size: 12px; color: #FF6B6B; text-align: center; padding: 0 20px 12px; line-height: 1.4; display: none; }
+    .results { padding: 0 20px 20px; display: flex; flex-direction: column; gap: 10px; }
+    .result-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; transition: all 0.3s; }
+    .result-card.has-result.IDR { border-color: var(--idr-bd); background: var(--idr-dim); }
+    .result-card.has-result.NZD { border-color: var(--nzd-bd); background: var(--nzd-dim); }
+    .result-card.has-result.USD { border-color: var(--usd-bd); background: var(--usd-dim); }
+    .result-left { display: flex; align-items: center; gap: 10px; }
+    .result-flag { font-size: 22px; }
+    .result-code { font-family: 'Space Mono',monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--muted); display: block; transition: color 0.3s; }
+    .has-result.IDR .result-code { color: var(--idr); } .has-result.NZD .result-code { color: var(--nzd); } .has-result.USD .result-code { color: var(--usd); }
+    .result-rate { font-size: 9px; color: var(--muted); font-family: 'Space Mono',monospace; display: block; margin-top: 2px; }
+    .result-amount { font-family: 'Space Mono',monospace; font-size: 20px; font-weight: 700; color: var(--border); text-align: right; transition: color 0.3s; }
+    .has-result.IDR .result-amount { color: var(--idr); } .has-result.NZD .result-amount { color: var(--nzd); } .has-result.USD .result-amount { color: var(--usd); }
+    .footer { padding: 10px 20px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .footer-note { font-size: 10px; color: var(--muted); }
+    .footer-time { font-size: 10px; color: var(--muted); font-family: 'Space Mono',monospace; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .reveal { animation: fadeUp 0.25s ease both; }
+  </style>
+</head>
+<body>
+<div class="widget">
+  <div class="header">
+    <div><div class="app-name">FedCon</div><div class="app-sub">IDR · NZD · USD</div></div>
+    <button class="live-btn" onclick="doConvert()"><div class="live-dot"></div>Live</button>
+  </div>
+  <div class="from-label">Convert from</div>
+  <div class="tabs" id="tabs"></div>
+  <div class="input-section">
+    <div class="input-wrap active-IDR" id="inputWrap">
+      <span class="from-tag IDR" id="fromTag">IDR</span>
+      <input type="number" id="amountInput" placeholder="0" inputmode="decimal" />
+    </div>
+    <div class="quick-row" id="quickRow"></div>
+  </div>
+  <button class="convert-btn" id="convertBtn" onclick="doConvert()">
+    <div class="spinner" id="spinner"></div>
+    <span id="btnText">Convert</span>
+  </button>
+  <div class="error-msg" id="errorMsg"></div>
+  <div class="results" id="results"></div>
+  <div class="footer">
+    <span class="footer-note">Rates via Google Finance</span>
+    <span class="footer-time" id="footerTime">—</span>
+  </div>
+</div>
+
+<script>
+const CURRENCIES = {
+  IDR: { flag:'🇮🇩', symbol:'Rp', decimals:0 },
+  NZD: { flag:'🇳🇿', symbol:'NZ$', decimals:2 },
+  USD: { flag:'🇺🇸', symbol:'US$', decimals:2 },
+};
+const QUICK = {
+  IDR:[{l:'100K',v:100000},{l:'500K',v:500000},{l:'1M',v:1000000},{l:'5M',v:5000000},{l:'10M',v:10000000}],
+  NZD:[{l:'$10',v:10},{l:'$50',v:50},{l:'$100',v:100},{l:'$500',v:500},{l:'$1K',v:1000}],
+  USD:[{l:'$10',v:10},{l:'$50',v:50},{l:'$100',v:100},{l:'$500',v:500},{l:'$1K',v:1000}],
+};
+let fromCurrency = 'IDR';
+
+function fmt(amount, code) {
+  const {symbol, decimals} = CURRENCIES[code];
+  if (decimals===0) return symbol+' '+Math.round(amount).toLocaleString('en-US');
+  return symbol+amount.toLocaleString('en-US',{minimumFractionDigits:decimals,maximumFractionDigits:decimals});
+}
+function extractJSON(str) {
+  const m = str.match(/\{[\s\S]*\}/);
+  if (!m) return null;
+  try { return JSON.parse(m[0]); } catch { return null; }
+}
+function renderTabs() {
+  document.getElementById('tabs').innerHTML = Object.entries(CURRENCIES).map(([code,cfg])=>
+    `<button class="tab${fromCurrency===code?' active-'+code:''}" onclick="selectFrom('${code}')">
+      <span class="tab-flag">${cfg.flag}</span><span class="tab-code">${code}</span>
+    </button>`).join('');
+}
+function renderQuick() {
+  document.getElementById('quickRow').innerHTML = QUICK[fromCurrency].map(q=>
+    `<button class="quick-btn" onclick="document.getElementById('amountInput').value=${q.v}">${q.l}</button>`).join('');
+}
+function renderResults(data) {
+  const targets = Object.keys(CURRENCIES).filter(c=>c!==fromCurrency);
+  document.getElementById('results').innerHTML = targets.map((code,i)=>{
+    const cfg = CURRENCIES[code];
+    const rateKey = `${fromCurrency}_TO_${code}`;
+    const rateVal = data?.rates?.[rateKey];
+    const converted = data?.converted?.[code];
+    const hasResult = converted !== undefined;
+    const rateLabel = rateVal ? `1 ${fromCurrency} = ${rateVal<0.01?rateVal.toFixed(8):rateVal.toFixed(5)} ${code}` : '—';
+    return `<div class="result-card ${code}${hasResult?' has-result reveal':''}" style="animation-delay:${i*90}ms">
+      <div class="result-left">
+        <span class="result-flag">${cfg.flag}</span>
+        <div><span class="result-code">${code}</span><span class="result-rate">${rateLabel}</span></div>
+      </div>
+      <div class="result-amount">${hasResult?fmt(converted,code):'—'}</div>
+    </div>`;
+  }).join('');
+}
+function selectFrom(code) {
+  fromCurrency = code;
+  document.getElementById('amountInput').value = '';
+  document.getElementById('fromTag').textContent = code;
+  document.getElementById('fromTag').className = `from-tag ${code}`;
+  document.getElementById('inputWrap').className = `input-wrap active-${code}`;
+  renderTabs(); renderQuick(); renderResults(null);
+}
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg; el.style.display = 'block';
+  setTimeout(()=>el.style.display='none', 5000);
+}
+function setLoading(on) {
+  document.getElementById('convertBtn').disabled = on;
+  document.getElementById('spinner').style.display = on?'block':'none';
+  document.getElementById('btnText').textContent = on?'Fetching live rates…':'Convert';
+}
+async function doConvert() {
+  const rawVal = document.getElementById('amountInput').value;
+  const amount = parseFloat(rawVal);
+  if (!rawVal||isNaN(amount)||amount<=0) { showError('Please enter a valid amount.'); return; }
+  setLoading(true);
+  document.getElementById('errorMsg').style.display = 'none';
+  renderResults(null);
+  const targets = Object.keys(CURRENCIES).filter(c=>c!==fromCurrency);
+  const pairs = targets.map(t=>`${fromCurrency} to ${t}`).join(' and ');
+  const exKeys = targets.map(t=>`"${fromCurrency}_TO_${t}": 0.00001234`).join(', ');
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6', max_tokens:1000,
+        tools:[{type:'web_search_20250305',name:'web_search'}],
+        system:`You are a currency exchange assistant. Search Google Finance for live rates. Respond with ONLY a raw JSON object, no markdown, no explanation. Format: {${exKeys}}. Use 8 decimal places.`,
+        messages:[{role:'user',content:`Live exchange rates now: ${pairs}. JSON only.`}],
+      }),
+    });
+    if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
+    const data = await res.json();
+    let rates = null;
+    for (const block of data.content) {
+      if (block.type==='text'&&block.text) {
+        const parsed = extractJSON(block.text);
+        if (parsed&&targets.some(t=>parsed[`${fromCurrency}_TO_${t}`]!==undefined)) { rates=parsed; break; }
+      }
+    }
+    if (!rates) throw new Error('Could not parse rates from response.');
+    const converted = {};
+    targets.forEach(t=>{ converted[t]=amount*(rates[`${fromCurrency}_TO_${t}`]||0); });
+    renderResults({rates,converted});
+    document.getElementById('footerTime').textContent =
+      new Date().toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
+  } catch(e) {
+    console.error(e);
+    showError(e.message||'Could not fetch live rates. Please try again.');
+  } finally { setLoading(false); }
+}
+document.getElementById('amountInput').addEventListener('keydown',e=>{ if(e.key==='Enter') doConvert(); });
+renderTabs(); renderQuick(); renderResults(null);
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
